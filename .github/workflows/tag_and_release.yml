@@ -18,7 +18,7 @@ jobs:
         id: get_tag
         run: |
           git fetch --tags
-          TAG=$(git tag --sort=-v:refname | tail -n1)
+          TAG=$(git tag --sort=-v:refname | grep '^v[0-9]' | head -n1)
           echo "latest_tag=$TAG" >> $GITHUB_OUTPUT
 
       - name: Parse and bump version
