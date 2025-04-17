@@ -11,7 +11,17 @@ on:
         required: true
 
 jobs:
+  prebuild:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.get.outputs.tag }}
+    steps:
+      - name: Determine tag
+        id: get
+        run: echo "tag=${{ github.event.inputs.tag || github.ref_name }}" >> $GITHUB_OUTPUT
+
   build-and-release:
+    needs: prebuild
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -20,11 +30,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
-      - name: Determine tag
-        id: version
-        run: |
-          echo "TAG=${{ github.event.inputs.tag || github.ref_name }}" >> $GITHUB_OUTPUT
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -46,13 +51,12 @@ jobs:
             cp dist/makegen output/makegen-macos
           else
             cp dist/makegen output/makegen-linux
-          fi
         shell: bash
 
       - name: Upload release binaries
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ steps.version.outputs.TAG }}
+          tag_name: ${{ needs.prebuild.outputs.tag }}
           files: output/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
