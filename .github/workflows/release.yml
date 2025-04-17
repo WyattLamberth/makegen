@@ -51,6 +51,7 @@ jobs:
             cp dist/makegen output/makegen-macos
           else
             cp dist/makegen output/makegen-linux
+          fi
         shell: bash
 
       - name: Upload release binaries
