@@ -1,12 +1,14 @@
-name: Build and Release makegen
+name: Release
 
 on:
   push:
     tags:
-      - 'v*'  # Matches version tags like v1.0.0
+      - 'v*'
+  repository_dispatch:
+    types: [release-trigger]
 
 jobs:
-  build:
+  build-and-release:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -24,11 +26,15 @@ jobs:
       - name: Install PyInstaller
         run: pip install pyinstaller
 
-      - name: Build Binary
+      - name: Build binary
         run: |
           pyinstaller --onefile makegen.py
-          mkdir output
-          cp dist/makegen* output/
+          mkdir -p output
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            cp dist/makegen.exe output/makegen-${{ matrix.os }}.exe
+          else
+            cp dist/makegen output/makegen-${{ matrix.os }}
+          fi
 
       - name: Upload release binaries
         uses: softprops/action-gh-release@v1
