@@ -27,14 +27,18 @@ jobs:
         run: pip install pyinstaller
 
       - name: Build binary
+        run: pyinstaller --onefile makegen.py
+
+      - name: Rename binary for release
         run: |
-          pyinstaller --onefile makegen.py
           mkdir -p output
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            cp dist/makegen.exe output/makegen-${{ matrix.os }}.exe
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp dist/makegen.exe output/makegen-windows.exe
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            cp dist/makegen output/makegen-macos
           else
-            cp dist/makegen output/makegen-${{ matrix.os }}
-          fi
+            cp dist/makegen output/makegen-linux
+        shell: bash
 
       - name: Upload release binaries
         uses: softprops/action-gh-release@v1
