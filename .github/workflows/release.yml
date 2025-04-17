@@ -4,8 +4,11 @@ on:
   push:
     tags:
       - 'v*'
-  repository_dispatch:
-    types: [release-trigger]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'The version tag'
+        required: true
 
 jobs:
   build-and-release:
