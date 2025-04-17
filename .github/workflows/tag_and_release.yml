@@ -1,0 +1,59 @@
+name: Auto Tag and Release
+
+on:
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  tag-and-release:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Get latest tag
+        id: get_tag
+        run: |
+          git fetch --tags
+          TAG=$(git tag --sort=-v:refname | tail -n1)
+          echo "latest_tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Parse and bump version
+        id: bump
+        run: |
+          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
+          TAG=${{ steps.get_tag.outputs.latest_tag }}
+          VERSION=${TAG#v}
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+          if [[ "$BRANCH_NAME" == feature-* ]]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          elif [[ "$BRANCH_NAME" == fix-* ]]; then
+            PATCH=$((PATCH + 1))
+          else
+            echo "Unsupported branch prefix: $BRANCH_NAME"
+            exit 1
+          fi
+
+          NEW_TAG="v$MAJOR.$MINOR.$PATCH"
+          echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+
+      - name: Configure Git for tag push
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+      - name: Push new tag
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          NEW_TAG=${{ steps.bump.outputs.new_tag }}
+          git tag "$NEW_TAG"
+          git push https://x-access-token:${RELEASE_TOKEN}@github.com/${{ github.repository }} "$NEW_TAG"
+
+      - name: Trigger release (optional)
+        run: echo "Tag ${{ steps.bump.outputs.new_tag }} pushed. Release will be handled by your tag-triggered workflow."
