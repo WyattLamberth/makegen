@@ -4,8 +4,11 @@ on:
   push:
     tags:
       - 'v*'
-  repository_dispatch:
-    types: [release-trigger]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'The version tag'
+        required: true
 
 jobs:
   build-and-release:
@@ -17,6 +20,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Determine tag
+        id: version
+        run: |
+          echo "TAG=${{ github.event.inputs.tag || github.ref_name }}" >> $GITHUB_OUTPUT
 
       - name: Set up Python
         uses: actions/setup-python@v4
